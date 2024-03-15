@@ -428,7 +428,11 @@ func (mc *_modelCache) getDbCreateSQL(al *alias) (queries []string, tableIndexes
 		sql += fmt.Sprintf("--  Table Structure for `%s`\n", mi.fullName)
 		sql += fmt.Sprintf("-- %s\n", strings.Repeat("-", 50))
 
-		sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s%s%s (\n", Q, mi.table, Q)
+		if al.Driver == DRMsSQL {
+			sql += fmt.Sprintf("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = '%s') \n BEGIN \n CREATE TABLE %s (\n", mi.table, mi.table)
+		} else {
+			sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s%s%s (\n", Q, mi.table, Q)
+		}
 
 		columns := make([]string, 0, len(mi.fields.fieldsDB))
 
@@ -437,6 +441,9 @@ func (mc *_modelCache) getDbCreateSQL(al *alias) (queries []string, tableIndexes
 		for _, fi := range mi.fields.fieldsDB {
 
 			column := fmt.Sprintf("    %s%s%s ", Q, fi.column, Q)
+			if al.Driver == DRMsSQL && IsSqlServerKeyword(fi.column) {
+				column = fmt.Sprintf("    [%s] ", fi.column)
+			}
 			col := getColumnTyp(al, fi)
 
 			if fi.auto {
@@ -460,7 +467,7 @@ func (mc *_modelCache) getDbCreateSQL(al *alias) (queries []string, tableIndexes
 				// }
 
 				// Append attribute DEFAULT
-				column += getColumnDefault(fi)
+				column += getColumnDefaultWithAlias(al, fi)
 
 				if fi.unique {
 					column += " " + "UNIQUE"
@@ -491,7 +498,12 @@ func (mc *_modelCache) getDbCreateSQL(al *alias) (queries []string, tableIndexes
 				cols := make([]string, 0, len(names))
 				for _, name := range names {
 					if fi, ok := mi.fields.GetByAny(name); ok && fi.dbcol {
-						cols = append(cols, fi.column)
+						if al.Driver == DRMsSQL && IsSqlServerKeyword(fi.column) {
+							cols = append(cols, fmt.Sprintf("[%s]", fi.column))
+						} else {
+							cols = append(cols, fi.column)
+						}
+
 					} else {
 						panic(fmt.Errorf("cannot found column `%s` when parse UNIQUE in `%s.TableUnique`", name, mi.fullName))
 					}
@@ -516,6 +528,9 @@ func (mc *_modelCache) getDbCreateSQL(al *alias) (queries []string, tableIndexes
 		}
 
 		sql += ";"
+		if al.Driver == DRMsSQL {
+			sql += "\n END"
+		}
 		queries = append(queries, sql)
 
 		if mi.model != nil {
@@ -534,7 +549,13 @@ func (mc *_modelCache) getDbCreateSQL(al *alias) (queries []string, tableIndexes
 
 		for _, names := range sqlIndexes {
 			name := mi.table + "_" + strings.Join(names, "_")
+			for idx, colName := range names {
+				if IsSqlServerKeyword(colName) {
+					names[idx] = fmt.Sprintf("[%s]", colName)
+				}
+			}
 			cols := strings.Join(names, sep)
+			
 			sql := fmt.Sprintf("CREATE INDEX %s%s%s ON %s%s%s (%s%s%s);", Q, name, Q, Q, mi.table, Q, Q, cols, Q)
 
 			index := dbIndex{}

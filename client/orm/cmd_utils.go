@@ -125,6 +125,53 @@ func getColumnAddQuery(al *alias, fi *fieldInfo) string {
 }
 
 // Get string value for the attribute "DEFAULT" for the CREATE, ALTER commands
+func getColumnDefaultWithAlias(al *alias, fi *fieldInfo) string {
+	var v, t, d string
+
+	// Skip default attribute if field is in relations
+	if fi.rel || fi.reverse {
+		return v
+	}
+
+	t = " DEFAULT '%s' "
+
+	// These defaults will be useful if there no config value orm:"default" and NOT NULL is on
+	switch fi.fieldType {
+	case TypeTimeField, TypeDateField, TypeDateTimeField, TypeTextField:
+		return v
+
+	case TypeBitField, TypeSmallIntegerField, TypeIntegerField,
+		TypeBigIntegerField, TypePositiveBitField, TypePositiveSmallIntegerField,
+		TypePositiveIntegerField, TypePositiveBigIntegerField, TypeFloatField,
+		TypeDecimalField:
+		t = " DEFAULT %s "
+		d = "0"
+	case TypeBooleanField:
+		t = " DEFAULT %s "
+		d = "FALSE"
+		if al.Driver == DRMsSQL {
+			d = "0"
+		}
+	case TypeJSONField, TypeJsonbField:
+		d = "{}"
+	}
+
+	if fi.colDefault {
+		if !fi.initial.Exist() {
+			v = fmt.Sprintf(t, "")
+		} else {
+			v = fmt.Sprintf(t, fi.initial.String())
+		}
+	} else {
+		if !fi.null {
+			v = fmt.Sprintf(t, d)
+		}
+	}
+
+	return v
+}
+
+// Get string value for the attribute "DEFAULT" for the CREATE, ALTER commands
 func getColumnDefault(fi *fieldInfo) string {
 	var v, t, d string
 

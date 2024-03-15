@@ -459,8 +459,16 @@ func (t *dbTables) getOrderSQL(orders []*order_clause.Order) (orderSQL string) {
 
 // generate limit sql.
 func (t *dbTables) getLimitSQL(mi *modelInfo, offset int64, limit int64) (limits string) {
-	if limit == 0 {
+	if limit <= 0 {
 		limit = int64(DefaultRowsLimit)
+		return
+	}
+	if offset < 0 {
+		return
+	}
+	if nil != getDbAlias("default") && getDbAlias("default").Driver == DRMsSQL {
+		limits = fmt.Sprintf(" offset %d rows fetch next %d rows only", offset, limit)
+		return
 	}
 	if limit < 0 {
 		// no limit

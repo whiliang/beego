@@ -27,6 +27,10 @@ import (
 // DriverType database driver constant int.
 type DriverType int
 
+const (
+	Unknown DriverType = -1
+)
+
 // Enum the Database driver
 const (
 	_          DriverType = iota // int enum type

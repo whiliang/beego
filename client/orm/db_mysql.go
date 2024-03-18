@@ -190,3 +190,7 @@ func newdbBaseMysql() dbBaser {
 	b.ins = b
 	return b
 }
+
+func (d *dbBaseMysql) DbDriver() DriverType {
+	return DRMySQL
+}

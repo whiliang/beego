@@ -338,7 +338,7 @@ func (d *dbBase) Read(ctx context.Context, q dbQuerier, mi *modelInfo, ind refle
 	sep := fmt.Sprintf("%s, %s", Q, Q)
 	dbCols := mi.fields.dbcols
 	colNames := make([]string, len(mi.fields.dbcols))
-	if getDbAlias("default") != nil && getDbAlias("default").Driver == DRMsSQL {
+	if d.DbDriver() == DRMsSQL {
 		for i, _ := range dbCols {
 			if IsSqlServerKeyword(dbCols[i]) {
 				colNames[i] = fmt.Sprintf("[%s]", dbCols[i])
@@ -473,22 +473,14 @@ func (d *dbBase) InsertValue(ctx context.Context, q dbQuerier, mi *modelInfo, is
 	Q := d.ins.TableQuote()
 
 	marks := make([]string, len(names))
-	//if nil != getDbAlias("default") && getDbAlias("default").Driver == DRMsSQL {
-	//	for i := 0; i < len(names); i++ {
-	//		marks[i] = fmt.Sprintf("@p%d", i+1)
-	//	}
-	//} else {
-	//	for i := range marks {
-	//		marks[i] = "?"
-	//	}
-	//}
+
 	for i := range marks {
 		marks[i] = "?"
 	}
 
 	sep := fmt.Sprintf("%s, %s", Q, Q)
 	qmarks := strings.Join(marks, ", ")
-	if nil != getDbAlias("default") && getDbAlias("default").Driver == DRMsSQL {
+	if d.DbDriver() == DRMsSQL {
 		for i := 0; i < len(names); i++ {
 			if IsSqlServerKeyword(names[i]) {
 				names[i] = fmt.Sprintf("[%s]", names[i])
@@ -517,15 +509,15 @@ func (d *dbBase) InsertValue(ctx context.Context, q dbQuerier, mi *modelInfo, is
 			lastInsertId, err := res.LastInsertId()
 			if err != nil {
 				DebugLog.Println(ErrLastInsertIdUnavailable, ':', err)
-				if nil != getDbAlias("default") && getDbAlias("default").Driver == DRMsSQL {
+				if d.DbDriver() == DRMsSQL {
 					var lastInsertID int64
-					err:=q.QueryRowContext(ctx,fmt.Sprintf("SELECT IDENT_CURRENT('%s')",mi.table)).Scan(&lastInsertID)
-					if err!=nil {
+					err := q.QueryRowContext(ctx, fmt.Sprintf("SELECT IDENT_CURRENT('%s')", mi.table)).Scan(&lastInsertID)
+					if err != nil {
 						DebugLog.Println("SCOPE_IDENTITY()", ':', err)
 					}
-					if lastInsertID>0{
-						lastInsertId=lastInsertID
-						return lastInsertId,nil
+					if lastInsertID > 0 {
+						lastInsertId = lastInsertID
+						return lastInsertId, nil
 					}
 				}
 				return lastInsertId, ErrLastInsertIdUnavailable
@@ -1030,12 +1022,12 @@ func (d *dbBase) ReadBatch(ctx context.Context, q dbQuerier, qs *querySet, mi *m
 		tCols = mi.fields.dbcols
 	}
 	originalTableCols := make([]string, len(tCols))
-	if nil != getDbAlias("default") && getDbAlias("default").Driver == DRMsSQL {
+	if d.DbDriver() == DRMsSQL {
 		for idx, col := range tCols {
 			originalTableCols[idx] = tCols[idx]
 			if IsSqlServerKeyword(col) {
 				originalTableCols[idx] = fmt.Sprintf("[%s]", col)
-			} 
+			}
 		}
 	} else {
 		originalTableCols = tCols
@@ -1978,4 +1970,8 @@ func (d *dbBase) GenerateSpecifyIndex(tableName string, useIndex int, indexes []
 	}
 
 	return fmt.Sprintf(` %s INDEX(%s) `, useWay, strings.Join(s, `,`))
+}
+
+func (d *dbBase) DbDriver() DriverType {
+	return d.ins.DbDriver()
 }

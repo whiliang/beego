@@ -178,3 +178,7 @@ func newdbBaseMssql() dbBaser {
 func (d *dbBaseMssql) HasReturningID(mi *modelInfo, query *string) bool {
 	return false
 }
+
+func (d *dbBaseMssql) DbDriver() DriverType {
+	return DRMsSQL
+}

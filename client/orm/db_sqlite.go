@@ -182,3 +182,7 @@ func newdbBaseSqlite() dbBaser {
 	b.ins = b
 	return b
 }
+
+func (d *dbBaseSqlite) DbDriver() DriverType {
+	return DRSqlite
+}

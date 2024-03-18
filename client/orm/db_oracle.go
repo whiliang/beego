@@ -169,3 +169,7 @@ func (d *dbBaseOracle) InsertValue(ctx context.Context, q dbQuerier, mi *modelIn
 	err := row.Scan(&id)
 	return id, err
 }
+
+func (d *dbBaseOracle) DbDriver() DriverType {
+	return DROracle
+}

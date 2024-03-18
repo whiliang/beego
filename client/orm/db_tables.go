@@ -466,7 +466,7 @@ func (t *dbTables) getLimitSQL(mi *modelInfo, offset int64, limit int64) (limits
 	if offset < 0 {
 		return
 	}
-	if nil != getDbAlias("default") && getDbAlias("default").Driver == DRMsSQL {
+	if t.base.DbDriver() == DRMsSQL {
 		limits = fmt.Sprintf(" offset %d rows fetch next %d rows only", offset, limit)
 		return
 	}

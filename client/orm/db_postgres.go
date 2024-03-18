@@ -195,3 +195,7 @@ func newdbBasePostgres() dbBaser {
 	b.ins = b
 	return b
 }
+
+func (d *dbBasePostgres) DbDriver() DriverType {
+	return DRPostgres
+}

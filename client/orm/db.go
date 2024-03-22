@@ -691,6 +691,14 @@ func (d *dbBase) Update(ctx context.Context, q dbQuerier, mi *modelInfo, ind ref
 		}
 	}
 
+	if d.ins.DbDriver() == DRMsSQL {
+		for idx, _ := range setNames {
+			if IsSqlServerKeyword(setNames[idx]) {
+				setNames[idx] = fmt.Sprintf("[%s]", setNames[idx])
+			}
+		}
+	}
+
 	setValues = append(setValues, pkValue)
 
 	Q := d.ins.TableQuote()

@@ -92,7 +92,7 @@ func (d *dbBaseMssql) OperatorSQL(operator string) string {
 
 // mssql support updating joined record.
 func (d *dbBaseMssql) SupportUpdateJoin() bool {
-	return true
+	return false
 }
 
 // mssql quote is ".

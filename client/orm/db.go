@@ -505,24 +505,24 @@ func (d *dbBase) InsertValue(ctx context.Context, q dbQuerier, mi *modelInfo, is
 			if isMulti {
 				return res.RowsAffected()
 			}
-
-			lastInsertId, err := res.LastInsertId()
-			if err != nil {
-				DebugLog.Println(ErrLastInsertIdUnavailable, ':', err)
-				if d.DbDriver() == DRMsSQL {
-					var lastInsertID int64
-					err := q.QueryRowContext(ctx, fmt.Sprintf("SELECT IDENT_CURRENT('%s')", mi.table)).Scan(&lastInsertID)
-					if err != nil {
-						DebugLog.Println("SCOPE_IDENTITY()", ':', err)
-					}
-					if lastInsertID > 0 {
-						lastInsertId = lastInsertID
-						return lastInsertId, nil
-					}
+			if d.DbDriver() == DRMsSQL {
+				var lastInsertID int64
+				err := q.QueryRowContext(ctx, fmt.Sprintf("SELECT IDENT_CURRENT('%s')", mi.table)).Scan(&lastInsertID)
+				if err != nil {
+					DebugLog.Println("SCOPE_IDENTITY()", ':', err)
+					return lastInsertID, ErrLastInsertIdUnavailable
 				}
-				return lastInsertId, ErrLastInsertIdUnavailable
+				if lastInsertID > 0 {
+					return lastInsertID, nil
+				}
 			} else {
-				return lastInsertId, nil
+				lastInsertId, err := res.LastInsertId()
+				if err != nil {
+					DebugLog.Println(ErrLastInsertIdUnavailable, ':', err)
+					return lastInsertId, ErrLastInsertIdUnavailable
+				} else {
+					return lastInsertId, nil
+				}
 			}
 		}
 		return 0, err
